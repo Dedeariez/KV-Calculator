@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KV Voice Studio - Finance Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; }
+        .table-container::-webkit-scrollbar { height: 8px; }
+        .table-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        input, select { background: transparent !important; outline: none; }
+    </style>
+</head>
+<body class="text-slate-200 p-4 md:p-8">
+    <div id="app" class="max-w-[1400px] mx-auto">
+        
+        <!-- Header & Config -->
+        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-black text-amber-500 tracking-tighter">KV VOICE STUDIO <span class="text-white">FINANCE LEDGER</span></h1>
+                <p class="text-slate-400 text-xs">Production Cost, Margin Analysis & Payment Cycle Tracker</p>
+            </div>
+            
+            <div class="flex items-center gap-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                <div class="text-right">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Payout Cycle</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm">Tiap Tanggal</span>
+                        <input v-model.number="cycleDate" type="number" class="w-10 text-amber-500 font-bold text-center border-b border-amber-500" min="1" max="31">
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-slate-700"></div>
+                <div>
+                    <button @click="addRow" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Tambah Baris
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Table Ledger -->
+        <div class="bg-slate-800/30 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+            <div class="table-container overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[1200px]">
+                    <thead>
+                        <tr class="bg-slate-800 text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                            <th class="px-4 py-4 font-bold">Client & Service</th>
+                            <th class="px-4 py-4 font-bold text-center">Duration</th>
+                            <th class="px-4 py-4 font-bold text-center">Rate ($)</th>
+                            <th class="px-4 py-4 font-bold text-center">Gross ($)</th>
+                            <th class="px-4 py-4 font-bold text-center text-red-400">Paypal (4%)</th>
+                            <th class="px-4 py-4 font-bold text-center text-green-400">Net Rec. ($)</th>
+                            <th class="px-4 py-4 font-bold text-center text-amber-500">Talent Cost ($)</th>
+                            <th class="px-4 py-4 font-bold text-center">Studio Profit</th>
+                            <th class="px-4 py-4 font-bold text-center">Margin %</th>
+                            <th class="px-4 py-4 font-bold text-center">Est. Payout</th>
+                            <th class="px-4 py-4 font-bold text-center">Status</th>
+                            <th class="px-4 py-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/50 text-sm">
+                        <tr v-for="(row, index) in rows" :key="index" class="hover:bg-slate-700/30 transition-colors">
+                            <!-- Client & Service -->
+                            <td class="px-4 py-3 min-w-[200px]">
+                                <input v-model="row.client" placeholder="Client Name" class="w-full font-bold text-white placeholder:text-slate-600 mb-1">
+                                <select v-model="row.service" class="w-full text-xs text-slate-400">
+                                    <option v-for="(v, k) in marketData" :key="k" :value="k">{{k}}</option>
+                                </select>
+                            </td>
+                            <!-- Duration -->
+                            <td class="px-4 py-3">
+                                <input v-model.number="row.duration" type="number" class="w-full text-center font-mono" placeholder="0">
+                            </td>
+                            <!-- Rate -->
+                            <td class="px-4 py-3">
+                                <input v-model.number="row.rate" type="number" class="w-full text-center font-mono text-amber-500" placeholder="0.00">
+                            </td>
+                            <!-- Gross (Auto) -->
+                            <td class="px-4 py-3 text-center font-mono bg-slate-900/20">
+                                ${{ (row.duration * row.rate).toFixed(2) }}
+                            </td>
+                            <!-- PayPal (Auto) -->
+                            <td class="px-4 py-3 text-center font-mono text-red-400/80 italic">
+                                -${{ (row.duration * row.rate * 0.04).toFixed(2) }}
+                            </td>
+                            <!-- Net (Auto) -->
+                            <td class="px-4 py-3 text-center font-mono text-green-400 font-bold bg-green-500/5">
+                                ${{ (row.duration * row.rate * 0.96).toFixed(2) }}
+                            </td>
+                            <!-- Talent Cost -->
+                            <td class="px-4 py-3">
+                                <input v-model.number="row.cost" type="number" class="w-full text-center font-mono text-amber-500" placeholder="0.00">
+                            </td>
+                            <!-- Profit (Auto) -->
+                            <td class="px-4 py-3 text-center font-mono font-black text-white">
+                                ${{ ( (row.duration * row.rate * 0.96) - row.cost ).toFixed(2) }}
+                            </td>
+                            <!-- Margin % -->
+                            <td class="px-4 py-3 text-center">
+                                <span :class="getMarginClass(( (row.duration * row.rate * 0.96) - row.cost ) / (row.duration * row.rate || 1))" class="text-[10px] font-bold px-2 py-1 rounded">
+                                    {{ ((( (row.duration * row.rate * 0.96) - row.cost ) / (row.duration * row.rate || 1)) * 100).toFixed(0) }}%
+                                </span>
+                            </td>
+                            <!-- Payout -->
+                            <td class="px-4 py-3 text-center text-[11px] text-slate-400">
+                                {{ calculatePayout(cycleDate) }}
+                            </td>
+                            <!-- Market Benchmark Status -->
+                            <td class="px-4 py-3 text-center">
+                                <span :class="getBenchmarkClass(row)" class="text-[9px] uppercase font-black px-2 py-1 rounded-full border">
+                                    {{ getBenchmark(row) }}
+                                </span>
+                            </td>
+                            <!-- Action -->
+                            <td class="px-4 py-3 text-center">
+                                <button @click="removeRow(index)" class="text-slate-600 hover:text-red-500 transition-colors">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <!-- Footer Summary -->
+                    <tfoot>
+                        <tr class="bg-slate-900/80 font-bold border-t-2 border-slate-700 text-white">
+                            <td class="px-4 py-4 text-amber-500 uppercase tracking-tighter">TOTAL LEDGER</td>
+                            <td class="px-4 py-4 text-center font-mono">{{ totalDuration }} Min</td>
+                            <td class="px-4 py-4"></td>
+                            <td class="px-4 py-4 text-center font-mono text-lg">${{ totals.gross.toFixed(2) }}</td>
+                            <td class="px-4 py-4 text-center font-mono text-red-400">-${{ totals.fee.toFixed(2) }}</td>
+                            <td class="px-4 py-4 text-center font-mono text-green-400">${{ totals.net.toFixed(2) }}</td>
+                            <td class="px-4 py-4 text-center font-mono text-amber-500">${{ totals.cost.toFixed(2) }}</td>
+                            <td class="px-4 py-4 text-center font-mono text-2xl text-amber-500">${{ totals.profit.toFixed(2) }}</td>
+                            <td colspan="4" class="px-4 py-4 text-right italic text-slate-500 text-xs">
+                                All data auto-saved to local browser
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Market Reference Legend -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div v-for="(v, k) in marketData" :key="k" class="bg-slate-800/20 border border-slate-800 p-4 rounded-xl">
+                <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{{k}}</h4>
+                <div class="flex justify-between text-xs">
+                    <span>CCJK Standard:</span>
+                    <span class="text-white font-mono">${{v.ccjk_low}} - ${{v.ccjk_high}}</span>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                    <span>Global 100:</span>
+                    <span class="text-blue-400 font-mono">${{v.global}}+</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    cycleDate: 25,
+                    rows: JSON.parse(localStorage.getItem('kv_rows') || '[{"client":"", "service":"Dubbing (End-to-End)", "duration":0, "rate":0, "cost":0}]'),
+                    marketData: {
+                        'Dubbing (End-to-End)': { ccjk_low: 8, ccjk_high: 12, global: 15 },
+                        'Standalone QC (A/V)': { ccjk_low: 1, ccjk_high: 2.5, global: 3 },
+                        'Script/Linguistic QA': { ccjk_low: 0.5, ccjk_high: 1.2, global: 1.5 }
+                    }
+                }
+            },
+            watch: {
+                rows: {
+                    handler(newVal) {
+                        localStorage.setItem('kv_rows', JSON.stringify(newVal));
+                    },
+                    deep: true
+                }
+            },
+            computed: {
+                totalDuration() {
+                    return this.rows.reduce((sum, row) => sum + (row.duration || 0), 0);
+                },
+                totals() {
+                    let gross = 0, fee = 0, net = 0, cost = 0, profit = 0;
+                    this.rows.forEach(row => {
+                        const g = (row.duration || 0) * (row.rate || 0);
+                        const f = g * 0.04;
+                        const n = g - f;
+                        const c = (row.cost || 0);
+                        const p = n - c;
+                        
+                        gross += g; fee += f; net += n; cost += c; profit += p;
+                    });
+                    return { gross, fee, net, cost, profit };
+                }
+            },
+            methods: {
+                addRow() {
+                    this.rows.push({ client: '', service: 'Dubbing (End-to-End)', duration: 0, rate: 0, cost: 0 });
+                },
+                removeRow(index) {
+                    if(confirm('Hapus baris ini?')) this.rows.splice(index, 1);
+                },
+                calculatePayout(cycleDay) {
+                    const today = new Date();
+                    let m = today.getMonth();
+                    let y = today.getFullYear();
+                    
+                    if (today.getDate() > cycleDay) {
+                        m++;
+                        if (m > 11) { m = 0; y++; }
+                    }
+                    const payoutDate = new Date(y, m, cycleDay);
+                    return payoutDate.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                },
+                getBenchmark(row) {
+                    const ref = this.marketData[row.service];
+                    if (!row.rate) return '---';
+                    if (row.rate < ref.ccjk_low) return 'Low Rate';
+                    if (row.rate <= ref.ccjk_high) return 'Competitive';
+                    return 'Global Standard';
+                },
+                getBenchmarkClass(row) {
+                    const status = this.getBenchmark(row);
+                    if (status === 'Low Rate') return 'text-red-500 border-red-500/30 bg-red-500/10';
+                    if (status === 'Competitive') return 'text-amber-500 border-amber-500/30 bg-amber-500/10';
+                    if (status === 'Global Standard') return 'text-blue-400 border-blue-400/30 bg-blue-400/10';
+                    return 'text-slate-500 border-slate-700';
+                },
+                getMarginClass(percent) {
+                    if (percent >= 0.5) return 'bg-green-500/20 text-green-400';
+                    if (percent >= 0.3) return 'bg-blue-500/20 text-blue-400';
+                    return 'bg-red-500/20 text-red-400';
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
